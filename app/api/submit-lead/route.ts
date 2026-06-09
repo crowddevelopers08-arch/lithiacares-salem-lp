@@ -78,12 +78,12 @@ async function sendToTeleCRM(data: LeadInput) {
       'Lead Stage': '',
       'Lead Status': 'new',
       'Lead Request Type': 'consultation',
-      PageName: data.source || 'le-thia-cares-website',
+      PageName: data.source || 'le-thia-cares-salem-website',
       State: 'Tamil Nadu',
       Age: '',
     },
     actions: [
-      { type: 'SYSTEM_NOTE', text: `Lead Source: ${data.pageUrl || data.source || 'le-thia-cares-website'}` },
+      { type: 'SYSTEM_NOTE', text: `Lead Source: ${data.pageUrl || data.source || 'le-thia-cares-salem-website'}` },
       { type: 'SYSTEM_NOTE', text: `Treatment: ${data.treatment || 'Not specified'}` },
       { type: 'SYSTEM_NOTE', text: `Location: ${data.location || 'Alagapuram, Salem'}` },
       { type: 'SYSTEM_NOTE', text: 'Consent Given: Yes' },
@@ -96,7 +96,7 @@ async function sendToTeleCRM(data: LeadInput) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.TELECRM_API_KEY}`,
-        'X-Client-ID': 'le-thia-cares-website',
+        'X-Client-ID': 'le-thia-cares-salem-website',
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
 
   const leadData: LeadInput = {
     name, phone, location, treatment,
-    source: 'le-thia-cares-website',
+    source: 'le-thia-cares-salem-website',
     pageUrl: pageUrl || undefined,
   };
 
