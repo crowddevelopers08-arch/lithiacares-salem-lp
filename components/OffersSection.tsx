@@ -174,63 +174,171 @@ function CountdownTimer() {
 function OfferCardsGrid() {
   const [activeCard, setActiveCard] = useState(0);
   const [shimmerKey, setShimmerKey] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const goTo = (index: number) => {
+    const next = ((index % offerImages.length) + offerImages.length) % offerImages.length;
+    setActiveCard(next);
+    setShimmerKey(k => k + 1);
+  };
+
+  const handleManualNav = (index: number) => {
+    goTo(index);
+    setIsPaused(true);
+    if (pauseTimer.current) clearTimeout(pauseTimer.current);
+    pauseTimer.current = setTimeout(() => setIsPaused(false), 5000);
+  };
 
   useEffect(() => {
+    if (isPaused) return;
     const id = setInterval(() => {
       setActiveCard(prev => (prev + 1) % offerImages.length);
       setShimmerKey(k => k + 1);
     }, 1500);
     return () => clearInterval(id);
-  }, []);
+  }, [isPaused]);
+
+  useEffect(() => () => { if (pauseTimer.current) clearTimeout(pauseTimer.current); }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) handleManualNav(activeCard + (diff > 0 ? 1 : -1));
+    touchStartX.current = null;
+  };
 
   return (
-    <div className="mx-auto mb-8 grid max-w-[960px] grid-cols-1 gap-4 sm:grid-cols-3 md:mb-10 md:gap-6 lg:mb-14 lg:gap-8 justify-items-center">
-      {offerImages.map((img, index) => {
-        const isActive = index === activeCard;
-        return (
+    <div className="mx-auto mb-8 max-w-[960px] md:mb-10 lg:mb-14">
+
+      {/* ── Mobile carousel (hidden sm+) ── */}
+      <div
+        className="relative sm:hidden"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Slide track */}
+        <div className="overflow-hidden rounded-xl"
+          style={{ boxShadow: '0 0 0 2.5px #ff6b00, 0 0 24px 8px rgba(255,107,0,0.45)' }}>
           <div
-            key={index}
-            style={{
-              position: 'relative',
-              borderRadius: '0.75rem',
-              overflow: 'hidden',
-              transform: isActive ? 'scale(1.06)' : 'scale(1)',
-              filter: isActive ? 'brightness(1.15)' : 'brightness(1)',
-              transition: 'transform 0.5s cubic-bezier(0.34,1.28,0.64,1), filter 0.5s ease, box-shadow 0.5s ease',
-              zIndex: isActive ? 2 : 1,
-              boxShadow: isActive
-                ? '0 0 0 2.5px #ff6b00, 0 0 20px 6px rgba(255,107,0,0.55), 0 0 40px 10px rgba(255,69,0,0.3)'
-                : '0 0 0 2.5px transparent',
-            }}
+            className="flex"
+            style={{ transform: `translateX(-${activeCard * 100}%)`, transition: 'transform 0.5s cubic-bezier(0.34,1.28,0.64,1)' }}
           >
-            {isActive && (
-              <div
-                key={shimmerKey}
-                className="cinema-shimmer-fire"
-                style={{
-                  position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
-                  background: 'linear-gradient(105deg, transparent 30%, rgba(255,160,60,0.35) 50%, transparent 70%)',
-                }}
-              />
-            )}
-            <div style={{
-              position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-              display: 'flex', gap: 5, zIndex: 20, pointerEvents: 'none',
-            }}>
-              {offerImages.map((_, di) => (
-                <span key={di} style={{
-                  display: 'block', width: 6, height: 6, borderRadius: '50%',
-                  background: di === activeCard ? '#ff6b00' : 'rgba(255,255,255,0.4)',
-                  boxShadow: di === activeCard ? '0 0 6px 2px #ff6b00' : 'none',
-                  animation: di === activeCard ? 'dot-fire 1s ease-in-out infinite' : 'none',
-                  transition: 'background 0.4s ease',
-                }} />
-              ))}
-            </div>
-            <Image src={img.src} alt={img.alt} width={600} height={600} className="h-auto w-full object-cover" />
+            {offerImages.map((img, index) => (
+              <div key={index} className="relative w-full flex-shrink-0">
+                <Image
+                  src={img.src} alt={img.alt} width={600} height={600}
+                  className="h-auto w-full object-cover"
+                />
+                {index === activeCard && (
+                  <div
+                    key={shimmerKey}
+                    className="cinema-shimmer-fire pointer-events-none absolute inset-0 z-10"
+                    style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,160,60,0.35) 50%, transparent 70%)' }}
+                  />
+                )}
+              </div>
+            ))}
           </div>
-        );
-      })}
+        </div>
+
+        {/* Prev arrow */}
+        <button
+          onClick={() => handleManualNav(activeCard - 1)}
+          aria-label="Previous offer"
+          className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
+          style={{ background: 'rgba(179,16,0,0.85)', boxShadow: '0 0 14px rgba(255,107,0,0.6)' }}
+        >
+          <span className="material-symbols-outlined text-[22px] text-white" style={{ fontVariationSettings: "'wght' 600" }}>chevron_left</span>
+        </button>
+
+        {/* Next arrow */}
+        <button
+          onClick={() => handleManualNav(activeCard + 1)}
+          aria-label="Next offer"
+          className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
+          style={{ background: 'rgba(179,16,0,0.85)', boxShadow: '0 0 14px rgba(255,107,0,0.6)' }}
+        >
+          <span className="material-symbols-outlined text-[22px] text-white" style={{ fontVariationSettings: "'wght' 600" }}>chevron_right</span>
+        </button>
+
+        {/* Dot indicators */}
+        <div className="mt-4 flex items-center justify-center gap-2">
+          {offerImages.map((_, di) => (
+            <button
+              key={di}
+              onClick={() => handleManualNav(di)}
+              aria-label={`Go to offer ${di + 1}`}
+              style={{
+                width: di === activeCard ? 22 : 8,
+                height: 8,
+                borderRadius: di === activeCard ? '4px' : '50%',
+                background: di === activeCard ? '#ff6b00' : 'rgba(255,255,255,0.3)',
+                boxShadow: di === activeCard ? '0 0 8px 3px #ff6b00' : 'none',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.35s ease',
+                padding: 0,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Desktop grid (hidden below sm) ── */}
+      <div className="hidden sm:grid grid-cols-3 gap-4 md:gap-6 lg:gap-8 justify-items-center">
+        {offerImages.map((img, index) => {
+          const isActive = index === activeCard;
+          return (
+            <div
+              key={index}
+              style={{
+                position: 'relative',
+                borderRadius: '0.75rem',
+                overflow: 'hidden',
+                transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                filter: isActive ? 'brightness(1.15)' : 'brightness(1)',
+                transition: 'transform 0.5s cubic-bezier(0.34,1.28,0.64,1), filter 0.5s ease, box-shadow 0.5s ease',
+                zIndex: isActive ? 2 : 1,
+                boxShadow: isActive
+                  ? '0 0 0 2.5px #ff6b00, 0 0 20px 6px rgba(255,107,0,0.55), 0 0 40px 10px rgba(255,69,0,0.3)'
+                  : '0 0 0 2.5px transparent',
+              }}
+            >
+              {isActive && (
+                <div
+                  key={shimmerKey}
+                  className="cinema-shimmer-fire"
+                  style={{
+                    position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
+                    background: 'linear-gradient(105deg, transparent 30%, rgba(255,160,60,0.35) 50%, transparent 70%)',
+                  }}
+                />
+              )}
+              <div style={{
+                position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+                display: 'flex', gap: 5, zIndex: 20, pointerEvents: 'none',
+              }}>
+                {offerImages.map((_, di) => (
+                  <span key={di} style={{
+                    display: 'block', width: 6, height: 6, borderRadius: '50%',
+                    background: di === activeCard ? '#ff6b00' : 'rgba(255,255,255,0.4)',
+                    boxShadow: di === activeCard ? '0 0 6px 2px #ff6b00' : 'none',
+                    animation: di === activeCard ? 'dot-fire 1s ease-in-out infinite' : 'none',
+                    transition: 'background 0.4s ease',
+                  }} />
+                ))}
+              </div>
+              <Image src={img.src} alt={img.alt} width={600} height={600} className="h-auto w-full object-cover" />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
