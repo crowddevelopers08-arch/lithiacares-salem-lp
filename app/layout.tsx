@@ -17,7 +17,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "Le Thia Cares",
-  description: "Le Thia Cares landing page replica",
+  description: "Le Thia Cares",
   icons: {
     icon: [
       { url: 'https://res.cloudinary.com/djzexkvyv/image/upload/v1779346399/lefav_pijz4a.png', type: 'image/png' },
@@ -49,7 +49,7 @@ export default function RootLayout({
           src="https://www.googletagmanager.com/gtag/js?id=G-M69HFE888C"
           strategy="afterInteractive"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics-1" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
